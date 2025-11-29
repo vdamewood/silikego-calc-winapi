@@ -122,13 +122,13 @@ void OnCalculate(HWND hwnd)
 	char *inBuffer = static_cast<char*>(GlobalAlloc(GPTR, ExpressionSize));
 	GetDlgItemText(hwnd, CALCULATOR_INPUT, inBuffer, ExpressionSize);
 
-	std::unique_ptr<Silikego::SyntaxTreeNode> Node =
+	Silikego::SyntaxTreeNode Node =
 		Silikego::ParseInfix(
 			std::unique_ptr<Silikego::StringSource>(
 				new Silikego::StringSource(inBuffer)));
 	GlobalFree(static_cast<HANDLE>(inBuffer));
 
-	Silikego::Value Value = Node->Evaluate(*caller);
+	Silikego::Value Value = Node.Evaluate(*caller);
 
 	std::ostringstream tmp;
 	switch (Value.Status())
