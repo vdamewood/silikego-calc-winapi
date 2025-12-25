@@ -75,8 +75,8 @@ void OnCreate(HWND Handle)
 		GetModuleHandle(NULL), NULL);
 
 		Silikego::FunctionCaller *caller = new Silikego::FunctionCaller();
-		caller->InstallOperators();
-		caller->InstallFunctions();
+		Silikego::InstallOperators(*caller);
+		Silikego::InstallFunctions(*caller);
 		SetProp(Handle, "Caller", caller);
 }
 
@@ -122,43 +122,48 @@ void OnCalculate(HWND hwnd)
 	char *inBuffer = static_cast<char*>(GlobalAlloc(GPTR, ExpressionSize));
 	GetDlgItemText(hwnd, CALCULATOR_INPUT, inBuffer, ExpressionSize);
 
-	Silikego::SyntaxTreeNode Node =
+	Silikego::SyntaxTreeNode result_tree =
 		Silikego::ParseInfix(
 			std::unique_ptr<Silikego::StringSource>(
 				new Silikego::StringSource(inBuffer)));
 	GlobalFree(static_cast<HANDLE>(inBuffer));
 
-	Silikego::Value Value = Node.Evaluate(*caller);
+	Silikego::Value result = result_tree.evaluate(*caller);
 
 	std::ostringstream tmp;
-	switch (Value.Status())
+	switch (result.status())
 	{
-	case Silikego::ValueStatus::INTEGER:
-		tmp << Value.Integer();
+	case Silikego::ValueStatus::Integer:
+		tmp << result.toInteger();
 		break;
-	case Silikego::ValueStatus::FLOAT:
-		tmp << Value.Float();
+	case Silikego::ValueStatus::Real:
+		tmp << result.toReal();
 		break;
-	case Silikego::ValueStatus::MEMORY_ERR:
-		tmp << "Error: Out of memory";
-		break;
-	case Silikego::ValueStatus::SYNTAX_ERR:
-		tmp << "Error: Syntax error";
-		break;
-	case Silikego::ValueStatus::ZERO_DIV_ERR:
-		tmp << "Error: Division by zero";
-		break;
-	case Silikego::ValueStatus::BAD_FUNCTION:
-		tmp << "Error: Function not found";
-		break;
-	case Silikego::ValueStatus::BAD_ARGUMENTS:
-		tmp << "Error: Bad argument count";
-		break;
-	case Silikego::ValueStatus::DOMAIN_ERR:
-		tmp << "Error: Domain error";
-		break;
-	case Silikego::ValueStatus::RANGE_ERR:
-		tmp << "Error: Range error";
+	case Silikego::ValueStatus::Error:
+		switch (result.toError())
+		{
+		case Silikego::Error::Memory:
+			tmp << "Error: Out of memory";
+			break;
+		case Silikego::Error::Syntax:
+			tmp << "Error: Syntax error";
+			break;
+		case Silikego::Error::ZeroDivision:
+			tmp << "Error: Division by zero";
+			break;
+		case Silikego::Error::FunctionName:
+			tmp << "Error: Function not found";
+			break;
+		case Silikego::Error::FunctionArguments:
+			tmp << "Error: Bad argument count";
+			break;
+		case Silikego::Error::Domain:
+			tmp << "Error: Domain error";
+			break;
+		case Silikego::Error::Range:
+			tmp << "Error: Range error";
+			break;
+		}
 	}
 
 	SetDlgItemText(hwnd, CALCULATOR_OUTPUT, tmp.str().c_str());
